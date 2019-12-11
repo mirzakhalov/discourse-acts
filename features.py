@@ -1,18 +1,15 @@
 import numpy
 
-
-
 from nltk.tokenize import TweetTokenizer
 from nltk import tokenize
 
 
 class Features():
 
-
     def __init__(self):
         self.tokenizer = TweetTokenizer()
+        self.dim = 1
 
-    
     def thread_info(self, thread):
         output = []
         unique_reply_dict = {}
@@ -25,13 +22,13 @@ class Features():
         branch_num = len(unique_reply_dict)
         is_self_post = 1 if 'is_self_post' in thread and thread['is_self_post'] else 0
         # Total Number of posts
-        output.append(numpy.full(300, 1.0 * len(thread['posts'])))
+        output.append(numpy.full(self.dim, 1.0 * len(thread['posts'])))
         # Number of unique branches
-        output.append(numpy.full(300, 1.0 * branch_num))
+        output.append(numpy.full(self.dim, 1.0 * branch_num))
         # Average Length of branches
-        output.append(numpy.full(300, 1.0 * self.average_branches(unique_reply_dict, branch_num)))
+        output.append(numpy.full(self.dim, 1.0 * self.average_branches(unique_reply_dict, branch_num)))
         # Whether it is a self post
-        output.append(numpy.full(300, 1.0 * is_self_post))
+        output.append(numpy.full(self.dim, 1.0 * is_self_post))
         return output
 
     def average_branches(self, branch_obj, branch_num):
@@ -42,11 +39,11 @@ class Features():
         try:
             reply_id = post['in_reply_to']
             if self.getAuthorFromID(thread, reply_id) == post['author']:
-                return numpy.full(300, 1.0)
+                return numpy.full(self.dim, 1.0)
             else:
-                return numpy.full(300, 0.0)
+                return numpy.full(self.dim, 0.0)
         except:
-            return numpy.full(300, 0.0)
+            return numpy.full(self.dim, 0.0)
 
     def getAuthorFromID(self, thread, target_id):
         for post in thread['posts']:
@@ -62,61 +59,58 @@ class Features():
             if post['id'] == target_id:
                 return post['body']
 
-
     # get the depth of the comment
     def getStructureFeatures(self, thread, target_id):
         output = []
-        p_output = [numpy.zeros(300), numpy.zeros(300), numpy.zeros(300)]
-
+        p_output = [numpy.zeros(self.dim), numpy.zeros(self.dim), numpy.zeros(self.dim)]
         post_iter = None
         for post in thread['posts']:
             if post['id'] == target_id:
                 # get the depth
-                output.append(self.getDepth(post, 300))
+                output.append(self.getDepth(post, self.dim))
                 # get the character count
-                output.append(numpy.full(300, 1.0 * len(post['body'])))
+                output.append(numpy.full(self.dim, 1.0 * len(post['body'])))
                 # get the word count
-                output.append(numpy.full(300, 1.0 * len(self.tokenizer.tokenize(post['body']))))
+                output.append(numpy.full(self.dim, 1.0 * len(self.tokenizer.tokenize(post['body']))))
                 # get the sentence count
-                output.append(numpy.full(300, 1.0 * len(tokenize.sent_tokenize(post['body']))))
+                output.append(numpy.full(self.dim, 1.0 * len(tokenize.sent_tokenize(post['body']))))
 
                 post_iter = post
                 break
-        
 
         if 'in_reply_to' in post_iter:
             parent_id = post_iter['in_reply_to']
             for p in thread['posts']:
                 if p['id'] == parent_id:
-                    p_output[0] += numpy.full(300, 1.0 * len(p['body']))
+                    p_output[0] += numpy.full(self.dim, 1.0 * len(p['body']))
                     # get the word count
-                    p_output[1] += numpy.full(300, 1.0 * len(self.tokenizer.tokenize(p['body'])))
+                    p_output[1] += numpy.full(self.dim, 1.0 * len(self.tokenizer.tokenize(p['body'])))
                     # get the sentence count
-                    p_output[2] += numpy.full(300, 1.0 * len(tokenize.sent_tokenize(p['body'])))
+                    p_output[2] += numpy.full(self.dim, 1.0 * len(tokenize.sent_tokenize(p['body'])))
                     break
 
         # parent = False
         # found = False
-        
+
         # while not parent:
         #     parent_id = post_iter['in_reply_to']
         #     for p in thread['posts']:
         #         if p['id'] == parent_id:
         #             post_iter = p
         #             found = True
-        #             p_output[0] += numpy.full(300, 1.0 * len(p['body']))
+        #             p_output[0] += numpy.full(self.dim, 1.0 * len(p['body']))
         #             # get the word count
-        #             p_output[1] += numpy.full(300, 1.0 * len(self.tokenizer.tokenize(p['body'])))
+        #             p_output[1] += numpy.full(self.dim, 1.0 * len(self.tokenizer.tokenize(p['body'])))
         #             # get the sentence count
-        #             p_output[2] += numpy.full(300, 1.0 * len(tokenize.sent_tokenize(p['body'])))
-            
+        #             p_output[2] += numpy.full(self.dim, 1.0 * len(tokenize.sent_tokenize(p['body'])))
+
         #     if not found:
         #         break
         #     else:
         #         found = False
         #     if 'in_reply_to' not in post_iter:
         #         parent = True
-    
+
         return output + p_output
 
     def getDepth(self, post, length):
@@ -132,9 +126,8 @@ class Features():
                     return post['body']
                 except:
                     return ""
-        
+
         return ""
-    
 
     def test(self):
         print("features setup correctly")
